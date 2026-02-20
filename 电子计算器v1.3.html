@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>电子计算器合集</title>
+<style>
+  *{box-sizing:border-box;font-family:system-ui, sans-serif;}
+  body{max-width:480px;margin:0 auto;padding:20px;background:#f7f7fa;}
+  .tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .tab{flex:1;padding:12px;border:none;border-radius:12px;background:#eaeef5;font-size:15px;cursor:pointer;white-space:nowrap;}
+  .tab.active{background:#4e6de7;color:white;}
+  .card{background:white;padding:24px;border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,0.08);}
+  .calc-page{display:none;}
+  .calc-page.active{display:block;}
+  h2{margin:0 0 18px;color:#222;font-size:20px;}
+  /* 提示文字样式，与页面风格适配 */
+  .trigger-tip{color:#666;font-size:13px;margin:-10px 0 18px 0;line-height:1.5;padding-left:2px;}
+  .row{margin:12px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .label-wrap{width:110px;flex-shrink:0;}
+  label{color:#444;font-size:14px;}
+  .input-group{flex:1;display:flex;}
+  .input-group input{flex:1;padding:10px;border:1px solid #ddd;border-right:none;border-radius:8px 0 0 8px;font-size:15px;}
+  .input-group select{padding:10px;border:1px solid #ddd;border-radius:0 8px 8px 0;font-size:14px;background:#fff;}
+  button{width:100%;padding:12px;background:#4e6de7;color:white;border:none;border-radius:8px;font-size:15px;margin-top:10px;cursor:pointer;}
+  button:hover{background:#405bdb;}
+  .result{margin-top:16px;padding:14px;background:#f5f7fa;border-radius:8px;font-size:15px;line-height:1.8;white-space:pre-line;}
+  /* 色环电阻样式 */
+  .color-band{display:flex;gap:6px;margin:10px 0;flex-wrap:wrap;}
+  .color-btn{width:40px;height:40px;border:2px solid #ccc;border-radius:6px;cursor:pointer;}
+  .color-btn.active{border-color:#4e6de7;}
+  /* 线径查询器样式 */
+  .query-type{display:flex;gap:10px;margin:10px 0;}
+  .query-btn{flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;background:#f5f7fa;cursor:pointer;text-align:center;}
+  .query-btn.active{background:#4e6de7;color:white;border-color:#4e6de7;}
+</style>
+<div class="tabs">
+  <button class="tab active" onclick="showPage('divider')">电阻分压</button>
+  <button class="tab" onclick="showPage('lc')">LC 计算</button>
+  <button class="tab" onclick="showPage('rc')">RC 截止频率</button>
+  <button class="tab" onclick="showPage('ne555_astable')">NE555 振荡</button>
+  <button class="tab" onclick="showPage('ne555_monostable')">NE555 单稳态</button>
+  <button class="tab" onclick="showPage('resistor_color')">色环电阻</button>
+  <button class="tab" onclick="showPage('enamel_wire')">线径查询</button>
+</div>
+<div class="card">
+  <!-- 电阻分压 -->
+  <div class="calc-page active" id="page-divider">
+    <h2>电阻分压计算器</h2>
+    <div class="row">
+      <div class="label-wrap"><label>总电压 U₁</label></div>
+      <div class="input-group">
+        <input type="number" id="dv_u1" step="any">
+        <select id="dv_u1_unit"><option value="V">V</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="label-wrap"><label>分压电压 U₂</label></div>
+      <div class="input-group">
+        <input type="number" id="dv_u2" step="any">
+        <select id="dv_u2_unit"><option value="V">V</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="label-wrap"><label>上电阻 R₁</label></div>
+      <div class="input-group">
+        <input type="number" id="dv_r1" step="any">
+        <select id="dv_r1_unit"><option value="Ω">Ω</option><option value="kΩ" selected>kΩ</option><option value="MΩ">MΩ</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="label-wrap"><label>下电阻 R₂</label></div>
+      <div class="input-group">
+        <input type="number" id="dv_r2" step="any">
+        <select id="dv_r2_unit"><option value="Ω">Ω</option><option value="kΩ" selected>kΩ</option><option value="MΩ">MΩ</option></select>
+      </div>
+    </div>
+    <button onclick="calcDivider()">计算</button>
+    <div class="result" id="dv_res"></div>
+  </div>
+  <!-- LC 计算（阻抗计算） -->
+  <div class="calc-page" id="page-lc">
+    <h2>LC 谐振计算器（阻抗计算）</h2>
+    <!-- 阻抗计算触发条件提示 -->
+    <div class="trigger-tip">💡 阻抗计算触发：输入【电容+频率】算容抗 | 输入【电感+频率】算感抗</div>
+    <div class="row">
+      <div class="label-wrap"><label>电感 L</label></div>
+      <div class="input-group">
+        <input type="number" id="lc_l" step="any">
+        <select id="lc_l_unit"><option value="nH">nH</option><option value="μH" selected>μH</option><option value="mH">mH</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="label-wrap"><label>电容 C</label></div>
+      <div class="input-group">
+        <input type="number" id="lc_c" step="any">
+        <select id="lc_c_unit"><option value="pF" selected>pF</option><option value="nF">nF</option><option value="μF">μF</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="label-wrap"><label>频率 f</label></div>
+      <div class="input-group">
+        <input type="number" id="lc_f" step="any">
+        <select id="lc_f_unit"><option value="Hz">Hz</option><option value="kHz">kHz</option><option value="MHz" selected>MHz</option></select>
+      </div>
+    </div>
+    <button onclick="calcLC()">计算</button>
+    <div class="result" id="lc_res"></div>
+  </div>
+  <!-- RC 截止频率 -->
+  <div class="calc-page" id="page-rc">
+    <h2>RC 截止频率计算器</h2>
+    <div class="row">
+      <div class="label-wrap"><label>电阻 R</label></div>
+      <div class="input-group">
+        <input type="number" id="rc_r" step="any">
+        <select id="rc_r_unit"><option value="Ω">Ω</option><option value="kΩ" selected>kΩ</option><option value="MΩ">MΩ</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="label-wrap"><label>电容 C</label></div>
+      <div class="input-group">
+        <input type="number" id="rc_c" step="any">
+        <select id="rc_c_unit"><option value="pF">pF</option><option value="nF" selected>nF</option><option value="μF">μF</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="label-wrap"><label>截止频率 f</label></div>
+      <div class="input-group">
+        <input type="number" id="rc_f" step="any">
+        <select id="rc_f_unit"><option value="Hz">Hz</option><option value="kHz" selected>kHz</option><option value="MHz">MHz</option></select>
+      </div>
+    </div>
+    <button onclick="calcRC()">计算</button>
+    <div class="result" id="rc_res"></div>
+  </div>
+  <!-- NE555 多谐振荡器 -->
+  <div class="calc-page" id="page-ne555_astable">
+    <h2>NE555 振荡频率</h2>
+    <div class="row">
+      <div class="label-wrap"><label>电阻 R总</label></div>
+      <div class="input-group">
+        <input type="number" id="ne555_r" step="any">
+        <select id="ne555_r_unit"><option value="Ω">Ω</option><option value="kΩ" selected>kΩ</option><option value="MΩ">MΩ</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="label-wrap"><label>电容 C</label></div>
+      <div class="input-group">
+        <input type="number" id="ne555_c" step="any">
+        <select id="ne555_c_unit"><option value="pF">pF</option><option value="nF">nF</option><option value="μF" selected>μF</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="label-wrap"><label>频率 f</label></div>
+      <div class="input-group">
+        <input type="number" id="ne555_f" step="any">
+        <select id="ne555_f_unit"><option value="Hz">Hz</option><option value="kHz" selected>kHz</option><option value="MHz">MHz</option></select>
+      </div>
+    </div>
+    <button onclick="calcNE555_Astable()">计算</button>
+    <div class="result" id="ne555_astable_res"></div>
+  </div>
+  <!-- NE555 单稳态 -->
+  <div class="calc-page" id="page-ne555_monostable">
+    <h2>NE555 单稳态</h2>
+    <div class="row">
+      <div class="label-wrap"><label>电阻 R</label></div>
+      <div class="input-group">
+        <input type="number" id="mono_r" step="any">
+        <select id="mono_r_unit"><option value="Ω">Ω</option><option value="kΩ" selected>kΩ</option><option value="MΩ">MΩ</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="label-wrap"><label>电容 C</label></div>
+      <div class="input-group">
+        <input type="number" id="mono_c" step="any">
+        <select id="mono_c_unit"><option value="pF">pF</option><option value="nF">nF</option><option value="μF" selected>μF</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="label-wrap"><label>时间 t</label></div>
+      <div class="input-group">
+        <input type="number" id="mono_t" step="any">
+        <select id="mono_t_unit"><option value="us">μs</option><option value="ms" selected>ms</option><option value="s">s</option></select>
+      </div>
+    </div>
+    <button onclick="calcNE555_Monostable()">计算</button>
+    <div class="result" id="ne555_monostable_res"></div>
+  </div>
+  <!-- 色环电阻计算器 -->
+  <div class="calc-page" id="page-resistor_color">
+    <h2>色环电阻计算器</h2>
+    <div class="row">
+      <div class="label-wrap"><label>色环数</label></div>
+      <select id="ring_type" onchange="updateRingUI()">
+        <option value="4">4环电阻</option>
+        <option value="5">5环电阻</option>
+      </select>
+    </div>
+    <!-- 4环电阻 -->
+    <div id="ring_4">
+      <div class="row">
+        <div class="label-wrap"><label>第1环(数字)</label></div>
+        <div class="color-band" id="band1"></div>
+      </div>
+      <div class="row">
+        <div class="label-wrap"><label>第2环(数字)</label></div>
+        <div class="color-band" id="band2"></div>
+      </div>
+      <div class="row">
+        <div class="label-wrap"><label>第3环(倍率)</label></div>
+        <div class="color-band" id="band3"></div>
+      </div>
+      <div class="row">
+        <div class="label-wrap"><label>第4环(误差)</label></div>
+        <div class="color-band" id="band4"></div>
+      </div>
+    </div>
+    <!-- 5环电阻 -->
+    <div id="ring_5" style="display:none">
+      <div class="row">
+        <div class="label-wrap"><label>第1环(数字)</label></div>
+        <div class="color-band" id="band1_5"></div>
+      </div>
+      <div class="row">
+        <div class="label-wrap"><label>第2环(数字)</label></div>
+        <div class="color-band" id="band2_5"></div>
+      </div>
+      <div class="row">
+        <div class="label-wrap"><label>第3环(数字)</label></div>
+        <div class="color-band" id="band3_5"></div>
+      </div>
+      <div class="row">
+        <div class="label-wrap"><label>第4环(倍率)</label></div>
+        <div class="color-band" id="band4_5"></div>
+      </div>
+      <div class="row">
+        <div class="label-wrap"><label>第5环(误差)</label></div>
+        <div class="color-band" id="band5_5"></div>
+      </div>
+    </div>
+    <button onclick="calcResistorColor()">计算阻值</button>
+    <div class="result" id="resistor_color_res"></div>
+  </div>
+  <!-- 线径查询（原漆包线电流查询器，25℃温升） -->
+  <div class="calc-page" id="page-enamel_wire">
+    <h2>线径查询(25℃温升)</h2>
+    <!-- 查询类型切换 -->
+    <div class="query-type">
+      <div class="query-btn active" id="query_by_wire" onclick="switchQueryType('wire')">线规/直径查电流</div>
+      <div class="query-btn" id="query_by_current" onclick="switchQueryType('current')">电流查线规/直径</div>
+    </div>
+    <!-- 线规/直径查电流 -->
+    <div id="wire_to_current" style="display:block">
+      <div class="row">
+        <div class="label-wrap"><label>输入类型</label></div>
+        <select id="wire_input_type" onchange="switchWireInputType()">
+          <option value="diameter">线径(mm)</option>
+          <option value="awg">AWG线规</option>
+        </select>
+      </div>
+      <!-- 线径输入 -->
+      <div id="diameter_input" style="display:block">
+        <div class="row">
+          <div class="label-wrap"><label>漆包线径</label></div>
+          <div class="input-group">
+            <input type="number" id="wire_diameter" step="0.01" placeholder="如0.5/1.0">
+            <select><option value="mm">mm</option></select>
+          </div>
+        </div>
+      </div>
+      <!-- AWG线规输入 -->
+      <div id="awg_input" style="display:none">
+        <div class="row">
+          <div class="label-wrap"><label>AWG线规</label></div>
+          <div class="input-group">
+            <input type="number" id="wire_awg" step="1" placeholder="如18/22/24" min=0 max=40>
+            <select><option value="awg">AWG</option></select>
+          </div>
+        </div>
+      </div>
+      <button onclick="calcWireToCurrent()">查询承载电流</button>
+    </div>
+    <!-- 电流查线规/直径 -->
+    <div id="current_to_wire" style="display:none">
+      <div class="row">
+        <div class="label-wrap"><label>工作电流</label></div>
+        <div class="input-group">
+          <input type="number" id="work_current" step="0.1" placeholder="如1.5/5/10">
+          <select><option value="A">A</option></select>
+        </div>
+      </div>
+      <button onclick="calcCurrentToWire()">查询适配线规</button>
+    </div>
+    <div class="result" id="enamel_wire_res"></div>
+  </div>
+</div>
+<script>
+  // 切换页面
+  function showPage(page) {
+    document.querySelectorAll('.calc-page').forEach(el => el.classList.remove('active'))
+    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'))
+    document.getElementById('page-'+page).classList.add('active')
+    event.target.classList.add('active')
+  }
+  // 取值 + 单位
+  function getVal(id) {
+    const num = parseFloat(document.getElementById(id).value) || null;
+    const unit = document.getElementById(id + '_unit').value;
+    return { num, unit };
+  }
+  // ---------------------- 电阻分压 ----------------------
+  function calcDivider() {
+    const U1 = getVal('dv_u1');
+    const U2 = getVal('dv_u2');
+    const R1 = getVal('dv_r1');
+    const R2 = getVal('dv_r2');
+    const res = document.getElementById('dv_res');
+    const known = [U1.num, U2.num, R1.num, R2.num].filter(x => x !== null).length;
+    if (known !== 3) {
+      res.textContent = "⚠️ 请填 3 个已知值，留空 1 个待求";
+      return;
+    }
+    function r2ohm(r) {
+      if (r.unit === 'Ω') return r.num;
+      if (r.unit === 'kΩ') return r.num * 1000;
+      if (r.unit === 'MΩ') return r.num * 1e6;
+      return r.num;
+    }
+    const u1 = U1.num;
+    const u2 = U2.num;
+    const r1 = r2ohm(R1);
+    const r2 = r2ohm(R2);
+    let lines = [];
+    if (u1 === null) {
+      const val = u2 * (r1 + r2) / r2;
+      lines.push(`U₁ = ${val.toFixed(3)} V`);
+    } else if (u2 === null) {
+      const val = u1 * r2 / (r1 + r2);
+      lines.push(`U₂ = ${val.toFixed(3)} V`);
+    } else if (R1.num === null) {
+      const val = r2 * (u1 - u2) / u2;
+      lines.push(`R₁ = ${(val/1000).toFixed(3)} kΩ`);
+    } else if (R2.num === null) {
+      const val = (u2 * r1) / (u1 - u2);
+      lines.push(`R₂ = ${(val/1000).toFixed(3)} kΩ`);
+    }
+    res.textContent = lines.join('\n');
+  }
+  // ---------------------- LC 谐振（核心：阻抗自动计算） ----------------------
+  function autoFreq(f) {
+    if (f < 1e3) return `${f.toFixed(3)} Hz`;
+    if (f < 1e6) return `${(f/1e3).toFixed(3)} kHz`;
+    return `${(f/1e6).toFixed(3)} MHz`;
+  }
+  function autoInductance(L) {
+    if (L < 1e-6) return `${(L*1e9).toFixed(3)} nH`;
+    if (L < 1e-3) return `${(L*1e6).toFixed(3)} μH`;
+    return `${(L*1e3).toFixed(3)} mH`;
+  }
+  function autoCapacitance(C) {
+    if (C < 1e-9) return `${(C*1e12).toFixed(3)} pF`;
+    if (C < 1e-6) return `${(C*1e9).toFixed(3)} nF`;
+    return `${(C*1e6).toFixed(3)} μF`;
+  }
+  // 单位转换工具函数
+  function f2hz(num, unit) { return unit === 'kHz' ? num*1e3 : unit === 'MHz' ? num*1e6 : num; }
+  function c2f(num, unit) { return unit === 'pF' ? num*1e-12 : unit === 'nF' ? num*1e-9 : num*1e-6; }
+  function l2h(num, unit) { return unit === 'nH' ? num*1e-9 : unit === 'μH' ? num*1e-6 : num*1e-3; }
+  // 阻抗格式化（Ω/kΩ，保留3位小数）
+  function formatZ(z) { return z >= 1e3 ? `${(z/1e3).toFixed(3)} kΩ` : `${z.toFixed(3)} Ω`; }
+  function calcLC() {
+    const L = getVal('lc_l');
+    const C = getVal('lc_c');
+    const F = getVal('lc_f');
+    const res = document.getElementById('lc_res');
+    const PI = Math.PI;
+    let resStr = '', zStr = '';
+    const hasL = L.num !== null && L.num > 0;
+    const hasC = C.num !== null && C.num > 0;
+    const hasF = F.num !== null && F.num > 0;
+    const known = [hasL, hasC, hasF].filter(Boolean).length;
+    // 第一步：自动判断并计算阻抗（条件足够才显示）
+    // 电容+频率 → 计算容抗 Xc = 1/(2πfC)
+    if (hasC && hasF) {
+      const Xc = 1 / (2 * PI * f2hz(F.num, F.unit) * c2f(C.num, C.unit));
+      zStr = `容抗 Xc = ${formatZ(Xc)}`;
+    }
+    // 电感+频率 → 计算感抗 Xl = 2πfL
+    else if (hasL && hasF) {
+      const Xl = 2 * PI * f2hz(F.num, F.unit) * l2h(L.num, L.unit);
+      zStr = `感抗 Xl = ${formatZ(Xl)}`;
+    }
+    // 条件不足 → 不显示阻抗
+    // 第二步：原有LC谐振知二求一逻辑
+    if (known === 2) {
+      function convL(l) { return l2h(l.num, l.unit); }
+      function convC(c) { return c2f(c.num, c.unit); }
+      function convF(fq) { return f2hz(fq.num, fq.unit); }
+      let realL, realC, realF;
+      if (!hasF) {
+        realL = convL(L); realC = convC(C);
+        realF = 1 / (2 * PI * Math.sqrt(realL * realC));
+        resStr = `谐振频率 f = ${autoFreq(realF)}`;
+      } else if (!hasL) {
+        realC = convC(C); realF = convF(F);
+        realL = 1 / (4 * PI*PI * realF*realF * realC);
+        resStr = `电感 L = ${autoInductance(realL)}`;
+      } else if (!hasC) {
+        realL = convL(L); realF = convF(F);
+        realC = 1 / (4 * PI*PI * realF*realF * realL);
+        resStr = `电容 C = ${autoCapacitance(realC)}`;
+      }
+    } else if (known !== 0) {
+      resStr = "⚠️ 请填 2 个值，留空 1 个待求";
+    }
+    // 拼接结果：谐振结果 + 阻抗结果（如有）
+    let finalStr = resStr;
+    if (finalStr && zStr) finalStr += '\n' + zStr;
+    else if (!finalStr) finalStr = zStr;
+    res.textContent = finalStr;
+  }
+  // ---------------------- RC 截止频率 ----------------------
+  function calcRC() {
+    const R = getVal('rc_r');
+    const C = getVal('rc_c');
+    const f = getVal('rc_f');
+    const res = document.getElementById('rc_res');
+    const known = [R.num, C.num, f.num].filter(x => x !== null).length;
+    if (known !== 2) {
+      res.textContent = "⚠️ 请填 2 个值，留空 1 个待求";
+      return;
+    }
+    function r2ohm(r) {
+      if (r.unit === 'Ω') return r.num;
+      if (r.unit === 'kΩ') return r.num * 1000;
+      if (r.unit === 'MΩ') return r.num * 1e6;
+      return r.num;
+    }
+    function c2farad(c) {
+      if (c.unit === 'pF') return c.num * 1e-12;
+      if (c.unit === 'nF') return c.num * 1e-9;
+      if (c.unit === 'μF') return c.num * 1e-6;
+      return c.num;
+    }
+    function f2hz(fq) {
+      if (fq.unit === 'Hz') return fq.num;
+      if (fq.unit === 'kHz') return fq.num * 1e3;
+      if (fq.unit === 'MHz') return fq.num * 1e6;
+      return fq.num;
+    }
+    const PI = Math.PI;
+    let realR, realC, realF;
+    if (f.num === null) {
+      realR = r2ohm(R);
+      realC = c2farad(C);
+      realF = 1 / (2 * PI * realR * realC);
+    } else if (R.num === null) {
+      realC = c2farad(C);
+      realF = f2hz(f);
+      realR = 1 / (2 * PI * realF * realC);
+    } else if (C.num === null) {
+      realR = r2ohm(R);
+      realF = f2hz(f);
+      realC = 1 / (2 * PI * realF * realR);
+    }
+    function autoR(r) {
+      if (r < 1e3) return `${r.toFixed(3)} Ω`;
+      if (r < 1e6) return `${(r/1e3).toFixed(3)} kΩ`;
+      return `${(r/1e6).toFixed(3)} MΩ`;
+    }
+    function autoC(c) {
+      if (c < 1e-9) return `${(c*1e12).toFixed(3)} pF`;
+      if (c < 1e-6) return `${(c*1e9).toFixed(3)} nF`;
+      return `${(c*1e6).toFixed(3)} μF`;
+    }
+    function autoF(fq) {
+      if (fq < 1e3) return `${fq.toFixed(3)} Hz`;
+      if (fq < 1e6) return `${(fq/1e3).toFixed(3)} kHz`;
+      return `${(fq/1e6).toFixed(3)} MHz`;
+    }
+    const lines = [
+      `R = ${autoR(realR)}`,
+      `C = ${autoC(realC)}`,
+      `f = ${autoF(realF)}`
+    ];
+    res.textContent = lines.join('\n');
+  }
+  // ---------------------- NE555 多谐振荡器 ----------------------
+  function calcNE555_Astable() {
+    const R = getVal('ne555_r');
+    const C = getVal('ne555_c');
+    const f = getVal('ne555_f');
+    const res = document.getElementById('ne555_astable_res');
+    const known = [R.num, C.num, f.num].filter(x => x !== null).length;
+    if (known !== 2) {
+      res.textContent = "⚠️ 请填 2 个值，留空 1 个待求";
+      return;
+    }
+    function r2ohm(r) {
+      if (r.unit === 'Ω') return r.num;
+      if (r.unit === 'kΩ') return r.num * 1000;
+      if (r.unit === 'MΩ') return r.num * 1e6;
+      return r.num;
+    }
+    function c2farad(c) {
+      if (c.unit === 'pF') return c.num * 1e-12;
+      if (c.unit === 'nF') return c.num * 1e-9;
+      if (c.unit === 'μF') return c.num * 1e-6;
+      return c.num;
+    }
+    function f2hz(fq) {
+      if (fq.unit === 'Hz') return fq.num;
+      if (fq.unit === 'kHz') return fq.num * 1e3;
+      if (fq.unit === 'MHz') return fq.num * 1e6;
+      return fq.num;
+    }
+    let realR, realC, realF;
+    const k = 1.44;
+    if (f.num === null) {
+      realR = r2ohm(R);
+      realC = c2farad(C);
+      realF = k / (realR * realC);
+    } else if (R.num === null) {
+      realC = c2farad(C);
+      realF = f2hz(f);
+      realR = k / (realF * realC);
+    } else if (C.num === null) {
+      realR = r2ohm(R);
+      realF = f2hz(f);
+      realC = k / (realF * realR);
+    }
+    function autoR(r) {
+      if (r < 1e3) return `${r.toFixed(3)} Ω`;
+      if (r < 1e6) return `${(r/1e3).toFixed(3)} kΩ`;
+      return `${(r/1e6).toFixed(3)} MΩ`;
+    }
+    function autoC(c) {
+      if (c < 1e-9) return `${(c*1e12).toFixed(3)} pF`;
+      if (c < 1e-6) return `${(c*1e9).toFixed(3)} nF`;
+      return `${(c*1e6).toFixed(3)} μF`;
+    }
+    function autoF(fq) {
+      if (fq < 1e3) return `${fq.toFixed(3)} Hz`;
+      if (fq < 1e6) return `${(fq/1e3).toFixed(3)} kHz`;
+      return `${(fq/1e6).toFixed(3)} MHz`;
+    }
+    const lines = [
+      `R总 = ${autoR(realR)}`,
+      `C = ${autoC(realC)}`,
+      `f = ${autoF(realF)}`
+    ];
+    res.textContent = lines.join('\n');
+  }
+  // ---------------------- NE555 单稳态 ----------------------
+  function calcNE555_Monostable() {
+    const R = getVal('mono_r');
+    const C = getVal('mono_c');
+    const t = getVal('mono_t');
+    const res = document.getElementById('ne555_monostable_res');
+    const known = [R.num, C.num, t.num].filter(x => x !== null).length;
+    if (known !== 2) {
+      res.textContent = "⚠️ 请填 2 个值，留空 1 个待求";
+      return;
+    }
+    function r2ohm(r) {
+      if (r.unit === 'Ω') return r.num;
+      if (r.unit === 'kΩ') return r.num * 1000;
+      if (r.unit === 'MΩ') return r.num * 1e6;
+      return r.num;
+    }
+    function c2farad(c) {
+      if (c.unit === 'pF') return c.num * 1e-12;
+      if (c.unit === 'nF') return c.num * 1e-9;
+      if (c.unit === 'μF') return c.num * 1e-6;
+      return c.num;
+    }
+    function t2sec(tx) {
+      if (tx.unit === 'us') return tx.num * 1e-6;
+      if (tx.unit === 'ms') return tx.num * 1e-3;
+      if (tx.unit === 's') return tx.num;
+      return tx.num;
+    }
+    let realR, realC, realT;
+    const k = 1.1;
+    if (t.num === null) {
+      realR = r2ohm(R);
+      realC = c2farad(C);
+      realT = k * realR * realC;
+    } else if (R.num === null) {
+      realC = c2farad(C);
+      realT = t2sec(t);
+      realR = realT / (k * realC);
+    } else if (C.num === null) {
+      realR = r2ohm(R);
+      realT = t2sec(t);
+      realC = realT / (k * realR);
+    }
+    function autoR(r) {
+      if (r < 1e3) return `${r.toFixed(3)} Ω`;
+      if (r < 1e6) return `${(r/1e3).toFixed(3)} kΩ`;
+      return `${(r/1e6).toFixed(3)} MΩ`;
+    }
+    function autoC(c) {
+      if (c < 1e-9) return `${(c*1e12).toFixed(3)} pF`;
+      if (c < 1e-6) return `${(c*1e9).toFixed(3)} nF`;
+      return `${(c*1e6).toFixed(3)} μF`;
+    }
+    function autoTime(tx) {
+      if (tx < 1e-3) return `${(tx*1e6).toFixed(3)} μs`;
+      if (tx < 1) return `${(tx*1e3).toFixed(3)} ms`;
+      return `${tx.toFixed(3)} s`;
+    }
+    const lines = [
+      `R = ${autoR(realR)}`,
+      `C = ${autoC(realC)}`,
+      `t = ${autoTime(realT)}`
+    ];
+    res.textContent = lines.join('\n');
+  }
+  // ---------------------- 色环电阻计算逻辑 ----------------------
+  const colorMap = [
+    {name:'黑',color:'#000000',digit:0,multi:1, tol:null},
+    {name:'棕',color:'#8B4513',digit:1,multi:10,tol:1},
+    {name:'红',color:'#FF0000',digit:2,multi:100,tol:2},
+    {name:'橙',color:'#FFA500',digit:3,multi:1e3,tol:null},
+    {name:'黄',color:'#FFFF00',digit:4,multi:1e4,tol:null},
+    {name:'绿',color:'#008000',digit:5,multi:1e6,tol:0.5},
+    {name:'蓝',color:'#0000FF',digit:6,multi:1e7,tol:0.25},
+    {name:'紫',color:'#800080',digit:7,multi:1e8,tol:0.1},
+    {name:'灰',color:'#808080',digit:8,multi:1e9,tol:0.05},
+    {name:'白',color:'#FFFFFF',digit:9,multi:1e10,tol:null},
+    {name:'金',color:'#FFD700',digit:null,multi:0.1,tol:5},
+    {name:'银',color:'#C0C0C0',digit:null,multi:0.01,tol:10}
+  ];
+  let selectedColor = {
+    b1:0,b2:0,b3:0,b4:10,
+    b1_5:0,b2_5:0,b3_5:0,b4_5:1,b5_5:10
+  };
+  function renderBand(elId, allowIndex, targetKey) {
+    const el = document.getElementById(elId);
+    el.innerHTML = '';
+    allowIndex.forEach(i => {
+      const c = colorMap[i];
+      const btn = document.createElement('div');
+      btn.className = 'color-btn';
+      btn.style.background = c.color;
+      btn.title = c.name;
+      btn.onclick = () => {
+        el.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedColor[targetKey] = i;
+      };
+      if (selectedColor[targetKey] === i) btn.classList.add('active');
+      el.appendChild(btn);
+    });
+  }
+  function updateRingUI() {
+    const type = document.getElementById('ring_type').value;
+    document.getElementById('ring_4').style.display = type === '4' ? 'block' : 'none';
+    document.getElementById('ring_5').style.display = type === '5' ? 'block' : 'none';
+    if (type === '4') {
+      renderBand('band1', [0,1,2,3,4,5,6,7,8,9], 'b1');
+      renderBand('band2', [0,1,2,3,4,5,6,7,8,9], 'b2');
+      renderBand('band3', [0,1,2,3,4,5,6,7,8,9,10,11], 'b3');
+      renderBand('band4', [1,2,10,11], 'b4');
+    } else {
+      renderBand('band1_5', [0,1,2,3,4,5,6,7,8,9], 'b1_5');
+      renderBand('band2_5', [0,1,2,3,4,5,6,7,8,9], 'b2_5');
+      renderBand('band3_5', [0,1,2,3,4,5,6,7,8,9], 'b3_5');
+      renderBand('band4_5', [0,1,2,3,4,5,6,7,8,9,10,11], 'b4_5');
+      renderBand('band5_5', [1,2,5,6,7,10,11], 'b5_5');
+    }
+  }
+  function calcResistorColor() {
+    const type = document.getElementById('ring_type').value;
+    const res = document.getElementById('resistor_color_res');
+    let ohm, tol;
+    if (type === '4') {
+      const d1 = colorMap[selectedColor.b1].digit;
+      const d2 = colorMap[selectedColor.b2].digit;
+      const mul = colorMap[selectedColor.b3].multi;
+      tol = colorMap[selectedColor.b4].tol;
+      ohm = (d1 * 10 + d2) * mul;
+    } else {
+      const d1 = colorMap[selectedColor.b1_5].digit;
+      const d2 = colorMap[selectedColor.b2_5].digit;
+      const d3 = colorMap[selectedColor.b3_5].digit;
+      const mul = colorMap[selectedColor.b4_5].multi;
+      tol = colorMap[selectedColor.b5_5].tol;
+      ohm = (d1 * 100 + d2 * 10 + d3) * mul;
+    }
+    let resistance = '';
+    if (ohm >= 1e6) resistance = (ohm / 1e6).toFixed(3) + ' MΩ';
+    else if (ohm >= 1e3) resistance = (ohm / 1e3).toFixed(3) + ' kΩ';
+    else resistance = ohm.toFixed(3) + ' Ω';
+    res.textContent = `阻值：${resistance}\n误差：±${tol}%`;
+  }
+  // ---------------------- 线径查询（25℃温升）核心逻辑 ----------------------
+  const awgWireData = [
+    {awg:0, diameter:8.251, current:105}, {awg:2, diameter:6.544, current:85},
+    {awg:4, diameter:5.189, current:65}, {awg:6, diameter:4.115, current:50},
+    {awg:8, diameter:3.264, current:40}, {awg:10, diameter:2.588, current:30},
+    {awg:12, diameter:2.053, current:22}, {awg:14, diameter:1.628, current:15},
+    {awg:16, diameter:1.291, current:10}, {awg:18, diameter:1.024, current:6},
+    {awg:20, diameter:0.813, current:4}, {awg:22, diameter:0.644, current:2.5},
+    {awg:24, diameter:0.511, current:1.5}, {awg:26, diameter:0.405, current:1.0},
+    {awg:28, diameter:0.321, current:0.8}, {awg:30, diameter:0.255, current:0.5},
+    {awg:32, diameter:0.202, current:0.3}, {awg:34, diameter:0.160, current:0.2},
+    {awg:36, diameter:0.127, current:0.15}, {awg:38, diameter:0.101, current:0.1},
+    {awg:40, diameter:0.080, current:0.08}
+  ];
+  function switchQueryType(type) {
+    const wireBtn = document.getElementById('query_by_wire');
+    const currentBtn = document.getElementById('query_by_current');
+    const wire2cur = document.getElementById('wire_to_current');
+    const cur2wire = document.getElementById('current_to_wire');
+    if (type === 'wire') {
+      wireBtn.classList.add('active');
+      currentBtn.classList.remove('active');
+      wire2cur.style.display = 'block';
+      cur2wire.style.display = 'none';
+    } else {
+      currentBtn.classList.add('active');
+      wireBtn.classList.remove('active');
+      cur2wire.style.display = 'block';
+      wire2cur.style.display = 'none';
+    }
+    document.getElementById('enamel_wire_res').textContent = '';
+  }
+  function switchWireInputType() {
+    const type = document.getElementById('wire_input_type').value;
+    const diaInput = document.getElementById('diameter_input');
+    const awgInput = document.getElementById('awg_input');
+    diaInput.style.display = type === 'diameter' ? 'block' : 'none';
+    awgInput.style.display = type === 'awg' ? 'block' : 'none';
+    document.getElementById('enamel_wire_res').textContent = '';
+  }
+  function awgToDiameter(awg) {
+    const data = awgWireData.find(item => item.awg === awg);
+    return data ? data.diameter : null;
+  }
+  function diameterToAwg(diameter) {
+    return awgWireData.reduce((prev, curr) => {
+      return Math.abs(curr.diameter - diameter) < Math.abs(prev.diameter - diameter) ? curr : prev;
+    });
+  }
+  function calcWireToCurrent() {
+    const res = document.getElementById('enamel_wire_res');
+    const inputType = document.getElementById('wire_input_type').value;
+    if (inputType === 'diameter') {
+      const dia = parseFloat(document.getElementById('wire_diameter').value);
+      if (!dia || dia <= 0 || dia > 10) {
+        res.textContent = '⚠️ 请输入0.08~10mm之间的有效线径';
+        return;
+      }
+      const matchData = diameterToAwg(dia);
+      res.textContent = `匹配结果：
+线径：${dia.toFixed(3)} mm
+最接近AWG：${matchData.awg} AWG（实际径${matchData.diameter}mm）
+25℃温升承载电流：${matchData.current.toFixed(2)} A
+提示：电流为空气中单根敷设参考值`;
+    } else {
+      const awg = parseInt(document.getElementById('wire_awg').value);
+      const matchData = awgWireData.find(item => item.awg === awg);
+      if (!matchData) {
+        res.textContent = '⚠️ 请输入0~40之间的有效AWG线规（整数）';
+        return;
+      }
+      res.textContent = `查询结果：
+AWG线规：${awg} AWG
+对应漆包线径：${matchData.diameter.toFixed(3)} mm
+25℃温升承载电流：${matchData.current.toFixed(2)} A
+提示：电流为空气中单根敷设参考值`;
+    }
+  }
+  function calcCurrentToWire() {
+    const res = document.getElementById('enamel_wire_res');
+    const current = parseFloat(document.getElementById('work_current').value);
+    if (!current || current < 0.08 || current > 105) {
+      res.textContent = '⚠️ 请输入0.08~105A之间的有效工作电流';
+      return;
+    }
+    const suitableWires = awgWireData.filter(item => item.current >= current).sort((a,b) => a.awg - b.awg);
+    const bestMatch = suitableWires[0] || awgWireData[awgWireData.length-1];
+    const closeMatch = awgWireData.reduce((prev, curr) => {
+      return Math.abs(curr.current - current) < Math.abs(prev.current - current) ? curr : prev;
+    });
+    res.textContent = `适配结果：
+推荐线规（载流量≥工作电流）：
+${bestMatch.awg} AWG | 线径${bestMatch.diameter.toFixed(3)}mm | 承载${bestMatch.current}A
+最接近线规（载流量匹配）：
+${closeMatch.awg} AWG | 线径${closeMatch.diameter.toFixed(3)}mm | 承载${closeMatch.current}A
+提示：推荐规格更安全，避免温升超标`;
+  }
+  // 初始化页面
+  window.onload = function() {
+    updateRingUI();
+  }
+</script>
